@@ -1,6 +1,8 @@
 const express = require('express');
+
 const mongoose = require('mongoose');
-const router = require('./routes/router');
+
+const router = require('./routes/routers');
 
 const {
   MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb',
@@ -8,6 +10,7 @@ const {
 } = process.env;
 
 const app = express();
+
 app.use(express.json());
 
 app.use((request, response, next) => {
