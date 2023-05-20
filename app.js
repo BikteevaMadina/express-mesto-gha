@@ -9,13 +9,16 @@ const {
 
 const app = express();
 app.use(express.json());
-app.use(router);
+
+
 app.use((request, response, next) => {
   request.user = {
-    _id: '64689589a4b642d9bc6a2f3f',
+    _id: '646898eda4b642d9bc6a2f41',
   };
   next();
 });
+
+app.use(router);
 
 async function start() {
   try {
