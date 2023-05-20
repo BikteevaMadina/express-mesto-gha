@@ -1,13 +1,5 @@
 const userSchema = require('../models/user');
 
-module.exports.getUsers = (request, response) => {
-  userSchema
-    .find({})
-    .then((users) => response.send(users))
-    .catch((err) => response.status(500)
-      .send({ message: err.message }));
-};
-
 module.exports.getUserById = (request, response) => {
   const { userId } = request.params;
 
@@ -23,12 +15,20 @@ module.exports.getUserById = (request, response) => {
 
       if (err.name === 'DocumentNotFoundError') {
         return response.status(404)
-          .send({ message: 'User with _id cannot be found' });
+          .send({ message: 'User with _id not found' });
       }
 
       return response.status(500)
         .send({ message: err.message });
     });
+};
+
+module.exports.getUsers = (request, response) => {
+  userSchema
+    .find({})
+    .then((users) => response.send(users))
+    .catch((err) => response.status(500)
+      .send({ message: err.message }));
 };
 
 module.exports.createUser = (request, response) => {
