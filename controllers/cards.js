@@ -26,7 +26,7 @@ module.exports.deleteCard = (request, response) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         response.status(400)
-          .send({ message: 'Card with _id not found' });
+          .send({ message: 'Card with _id cannot be found' });
       } else {
         response.status(500)
           .send({ message: err.message });
@@ -52,7 +52,7 @@ module.exports.createCard = (request, response) => {
     .catch((err) => {
       if (err.name === 'ValidationError') {
         response.status(400)
-          .send({ message: 'Invalid data to create card' });
+          .send({ message: 'Invalid data for card creation' });
       } else {
         response.status(500)
           .send({ message: err.message });
@@ -79,7 +79,7 @@ module.exports.addLike = (request, response) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         return response.status(400)
-          .send({ message: 'Invalid data to like' });
+          .send({ message: 'Invalid data to add like' });
       }
 
       return response.status(500)
