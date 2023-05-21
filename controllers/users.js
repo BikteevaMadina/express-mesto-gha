@@ -1,10 +1,18 @@
+const httpConstants = require('http2').constants;
 const userSchema = require('../models/user');
+
+const {
+  HTTP_STATUS_CREATED,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_OK,
+} = httpConstants;
 
 module.exports.getUsers = (request, response) => { // получаем всех пользователей
   userSchema.find({})
     .then((users) => response.send(users))
-    .catch((err) => response.status(500)
-      .send({ message: err.message }));
+    .catch(() => response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' }));
 };
 
 module.exports.getUserById = (request, response) => { // получаем пользователя по id
@@ -15,17 +23,14 @@ module.exports.getUserById = (request, response) => { // получаем пол
     .then((user) => response.send(user))
     .catch((err) => {
       if (err.name === 'CastError') {
-        return response.status(400)
-          .send({ message: ' Bad Request ' });
+        return response.status(HTTP_STATUS_BAD_REQUEST).send({ message: ' Bad Request ' });
       }
 
       if (err.name === 'DocumentNotFoundError') {
-        return response.status(404)
-          .send({ message: ' User by _id not found ' }); // пользователь с данным id не найден
+        return response.status(HTTP_STATUS_NOT_FOUND).send({ message: ' User by _id not found ' }); // пользователь с данным id не найден
       }
 
-      return response.status(500)
-        .send({ message: err.message });
+      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' });
     });
 };
 
@@ -41,15 +46,15 @@ module.exports.createUser = (request, response) => { // создаём поль�
     about,
     avatar,
   })
-    .then((user) => response.status(201)
+    .then((user) => response.status(HTTP_STATUS_CREATED)
       .send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        response.status(400)
+        response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: ' Invalid data to user create ' });
       } else {
-        response.status(500)
-          .send({ message: err.message });
+        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: 'Произошла ошибка' });
       }
     });
 };
@@ -71,16 +76,17 @@ module.exports.updateUser = (request, response) => { // обновление д�
       runValidators: true,
     },
   )
-    .then((user) => response.status(200)
+    .then((user) => response.status(HTTP_STATUS_OK)
       .send(user))
     .catch((err) => {
-      if (err.name === 'CastError' || err.name === 'ValidationError') {
-        return response.status(400)
-          .send({ message: ' Invalid data to user update ' });
+      if (err.name === 'DocumentNotFoundError') {
+        return response.status(HTTP_STATUS_NOT_FOUND).send({ message: 'User by id not found' });
+      }
+      if (err.name === 'ValidationError') {
+        return response.status(HTTP_STATUS_BAD_REQUEST).send({ message: ' Invalid data to user update ' });
       }
 
-      return response.status(500)
-        .send({ message: err.message });
+      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' });
     });
 };
 
@@ -95,15 +101,15 @@ module.exports.updateAvatar = (request, response) => { // обновление �
       runValidators: true,
     },
   )
-    .then((user) => response.status(200)
+    .then((user) => response.status(HTTP_STATUS_OK)
       .send(user))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        response.status(400)
+        response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: ' Invalid data to avatar update ' }); //  некорректные данные для обновления
       } else {
-        response.status(500)
-          .send({ message: err.message });
+        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: 'Произошла ошибка' });
       }
     });
 };

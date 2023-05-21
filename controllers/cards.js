@@ -1,11 +1,20 @@
+const httpConstants = require('http2').constants;
 const cardSchema = require('../models/card');
+
+const {
+  HTTP_STATUS_CREATED,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_OK,
+} = httpConstants;
 
 module.exports.getCards = (request, response) => { // получение всех постов
   cardSchema.find({})
-    .then((cards) => response.status(200)
+    .then((cards) => response.status(HTTP_STATUS_OK)
       .send(cards))
-    .catch((err) => response.status(500)
-      .send({ message: err.message }));
+    .catch(() => response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+      .send({ message: 'Произошла ошибка' }));
 };
 
 module.exports.deleteCard = (request, response) => { // удаление поста по id
@@ -14,20 +23,20 @@ module.exports.deleteCard = (request, response) => { // удаление пос�
   cardSchema.findByIdAndRemove(cardId)
     .then((card) => {
       if (!card) {
-        return response.status(404)
+        return response.status(HTTP_STATUS_NOT_FOUND)
           .send({ message: 'Not found' });
       }
 
-      return response.status(200)
+      return response.status(HTTP_STATUS_OK)
         .send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        response.status(400)
+        response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: 'Card by _id not found' });
       } else {
-        response.status(500)
-          .send({ message: err.message });
+        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: 'Произошла ошибка' });
       }
     });
 };
@@ -44,15 +53,15 @@ module.exports.createCard = (request, response) => { // создание пос�
     link,
     owner,
   })
-    .then((card) => response.status(201)
+    .then((card) => response.status(HTTP_STATUS_CREATED)
       .send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        response.status(400)
+        response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: 'Invalid data to create card' });
       } else {
-        response.status(500)
-          .send({ message: err.message });
+        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: 'Произошла ошибка' });
       }
     });
 };
@@ -65,21 +74,21 @@ module.exports.addLike = (request, response) => { // добавление лай
   )
     .then((card) => {
       if (!card) {
-        return response.status(404)
+        return response.status(HTTP_STATUS_NOT_FOUND)
           .send({ message: 'Not found' });
       }
 
-      return response.status(200)
+      return response.status(HTTP_STATUS_OK)
         .send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return response.status(400)
+        return response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: 'Invalid data to add like' });
       }
 
-      return response.status(500)
-        .send({ message: err.message });
+      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: 'Произошла ошибка' });
     });
 };
 
@@ -91,20 +100,20 @@ module.exports.deleteLike = (request, response) => { // удаление лай�
   )
     .then((card) => {
       if (!card) {
-        return response.status(404)
+        return response.status(HTTP_STATUS_NOT_FOUND)
           .send({ message: 'Not found' });
       }
 
-      return response.status(200)
+      return response.status(HTTP_STATUS_OK)
         .send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        return response.status(400)
+        return response.status(HTTP_STATUS_BAD_REQUEST)
           .send({ message: 'Invalid data to delete like' });
       }
 
-      return response.status(500)
-        .send({ message: err.message });
+      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: 'Произошла ошибка' });
     });
 };
