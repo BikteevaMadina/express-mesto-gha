@@ -4,6 +4,7 @@ const userSchema = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
+const AuthorizedError = require('../errors/AuthorizedError');
 
 const {
   HTTP_STATUS_OK,
@@ -162,19 +163,28 @@ module.exports.updateAvatar = (request, response, next) => { // обновлен
     });
 };
 
-module.exports.login = (request, response, next) => {
-  const {
-    email,
-    password,
-  } = request.body;
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
 
   return userSchema
-    .findUserByCredentials(email, password)
+    .findOne({ email })
+    .select('+password')
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'cat', {
-        expiresIn: '3d',
-      });
-      response.send({ token });
+      if (!user) {
+        return next(new AuthorizedError('incorrect email or password'));
+      }
+
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return next(new AuthorizedError('incorrect email or password'));
+          }
+
+          const token = jwt.sign({ _id: user._id }, 'secret-person-key', { expiresIn: '7d' });
+          res.cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true });
+
+          return res.status(200).send({ token });
+        });
     })
     .catch(next);
 };
