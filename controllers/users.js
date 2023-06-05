@@ -1,21 +1,22 @@
-const httpConstants = require('http2').constants;
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const userSchema = require('../models/user');
-
+const NotFoundError = require('../errors/NotFoundError');
+const BadRequestError = require('../errors/BadRequestError');
+const ConflictError = require('../errors/ConflictError');
+const AuthorizedError = require('../errors/AuthorizedError');
 const {
   HTTP_STATUS_CREATED,
-  HTTP_STATUS_BAD_REQUEST,
-  HTTP_STATUS_NOT_FOUND,
-  HTTP_STATUS_INTERNAL_SERVER_ERROR,
   HTTP_STATUS_OK,
-} = httpConstants;
+} = require('../utils/constants');
 
-module.exports.getUsers = (request, response) => { // получаем всех пользователей
+module.exports.getUsers = (request, response, next) => { // получаем всех пользователей
   userSchema.find({})
     .then((users) => response.send(users))
-    .catch(() => response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' }));
+    .catch(next);
 };
 
-module.exports.getUserById = (request, response) => { // получаем пользователя по id
+module.exports.getUserById = (request, response, next) => { // получаем пользователя по id
   const { userId } = request.params;
 
   userSchema.findById(userId)
@@ -23,43 +24,59 @@ module.exports.getUserById = (request, response) => { // получаем пол
     .then((user) => response.send(user))
     .catch((err) => {
       if (err.name === 'CastError') {
-        return response.status(HTTP_STATUS_BAD_REQUEST).send({ message: ' Bad Request ' });
+        return next(new BadRequestError('Incorrect id'));
       }
 
       if (err.name === 'DocumentNotFoundError') {
-        return response.status(HTTP_STATUS_NOT_FOUND).send({ message: ' User by _id not found ' }); // пользователь с данным id не найден
+        return next(new NotFoundError('User by id not found'));
       }
 
-      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' });
+      return next(err);
     });
 };
 
-module.exports.createUser = (request, response) => { // создаём пользователя
+module.exports.createUser = (request, response, next) => { // создаём пользователя
   const {
     name,
     about,
     avatar,
+    email,
+    password,
   } = request.body;
-
-  userSchema.create({
-    name,
-    about,
-    avatar,
-  })
-    .then((user) => response.status(HTTP_STATUS_CREATED)
-      .send(user))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        response.status(HTTP_STATUS_BAD_REQUEST)
-          .send({ message: ' Invalid data to user create ' });
-      } else {
-        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: 'Произошла ошибка' });
-      }
-    });
+  bcrypt.hash(password, 10)
+    .then((hash) => {
+      userSchema.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hash,
+      })
+        .then(() => response.status(HTTP_STATUS_CREATED)
+          .send(
+            {
+              data: {
+                name,
+                about,
+                avatar,
+                email,
+              },
+            },
+          ))
+        .catch((err) => {
+          if (err.code === 11000) {
+            return next(new ConflictError('The User with email has registered'));
+          }
+          if (err.name === 'ValidationError') {
+            return next(new BadRequestError('Incorrect data'));
+          }
+          return next(err);
+        });
+    })
+    .catch(next);
 };
 
-module.exports.updateUser = (request, response) => { // обновление данных пользователя
+module.exports.updateUser = (request, response, next) => { // обновление данных пользователя
   const {
     name,
     about,
@@ -79,18 +96,14 @@ module.exports.updateUser = (request, response) => { // обновление д�
     .then((user) => response.status(HTTP_STATUS_OK)
       .send(user))
     .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        return response.status(HTTP_STATUS_NOT_FOUND).send({ message: 'User by id not found' });
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        return next(new NotFoundError('Invalid user by id'));
       }
-      if (err.name === 'ValidationError') {
-        return response.status(HTTP_STATUS_BAD_REQUEST).send({ message: ' Invalid data to user update ' });
-      }
-
-      return response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Произошла ошибка' });
+      return next(err);
     });
 };
 
-module.exports.updateAvatar = (request, response) => { // обновление аватара пользователя
+module.exports.updateAvatar = (request, response, next) => { // обновление аватара пользователя
   const { avatar } = request.body;
 
   userSchema.findByIdAndUpdate(
@@ -105,11 +118,39 @@ module.exports.updateAvatar = (request, response) => { // обновление �
       .send(user))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        response.status(HTTP_STATUS_BAD_REQUEST)
-          .send({ message: ' Invalid data to avatar update ' }); //  некорректные данные для обновления
+        next(new BadRequestError('Invalid data to avatar update'));
       } else {
-        response.status(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: 'Произошла ошибка' });
+        next(err);
       }
     });
+};
+
+module.exports.login = (request, response, next) => {
+  const {
+    email,
+    password,
+  } = request.body;
+
+  return userSchema.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        return next(new AuthorizedError('Неправильные почта или пароль'));
+      }
+
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return next(new AuthorizedError('Неправильные почта или пароль'));
+          }
+          const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+
+          response.cookie('jwt', token, {
+            httpOnly: false,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+          });
+
+          return response.send({ message: 'Авторизация прошла успешно' });
+        });
+    })
+    .catch((err) => next(err));
 };

@@ -2,7 +2,18 @@ const express = require('express');
 
 const mongoose = require('mongoose');
 
+const { errors } = require('celebrate');
+
 const router = require('./routes/routers');
+
+const {
+  createUserValidation,
+  loginValidation,
+} = require('./middlewares/validation');
+
+const auth = require('./middlewares/auth');
+
+const { createUser, login } = require('./controllers/users');
 
 const {
   MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb',
@@ -12,15 +23,24 @@ const {
 const app = express();
 
 app.use(express.json());
-
-app.use((request, response, next) => {
-  request.user = {
-    _id: '64689589a4b642d9bc6a2f3f',
-  };
+app.post('/signin', loginValidation, login);
+app.post('/signup', createUserValidation, createUser);
+app.use(auth);
+app.use(router);
+app.use(errors());
+app.use((error, request, response, next) => {
+  const {
+    status = 500,
+    message,
+  } = error;
+  response.status(status)
+    .send({
+      message: status === 500
+        ? 'На сервере произошла ошибка'
+        : message,
+    });
   next();
 });
-
-app.use(router);
 
 async function start() {
   try {
