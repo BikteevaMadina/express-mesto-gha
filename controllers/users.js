@@ -1,12 +1,9 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const userSchema = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
-const ConflictError = require('../errors/ConflictError');
 
 const {
-  HTTP_STATUS_CREATED,
   HTTP_STATUS_OK,
 } = require('../utils/constants');
 
@@ -33,47 +30,6 @@ module.exports.getUserById = (request, response, next) => { // получаем 
 
       return next(err);
     });
-};
-
-module.exports.createUser = (request, response, next) => { // создаём пользователя
-  const {
-    name,
-    about,
-    avatar,
-    email,
-    password,
-  } = request.body;
-  bcrypt.hash(password, 10)
-    .then((hash) => {
-      userSchema.create({
-        name,
-        about,
-        avatar,
-        email,
-        password: hash,
-      })
-        .then(() => response.status(HTTP_STATUS_CREATED)
-          .send(
-            {
-              data: {
-                name,
-                about,
-                avatar,
-                email,
-              },
-            },
-          ))
-        .catch((err) => {
-          if (err.code === 11000) {
-            return next(new ConflictError('The User with email has registered'));
-          }
-          if (err.name === 'ValidationError') {
-            return next(new BadRequestError('Incorrect data'));
-          }
-          return next(err);
-        });
-    })
-    .catch(next);
 };
 
 module.exports.getUser = (request, response, next) => {
