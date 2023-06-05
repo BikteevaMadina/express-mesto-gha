@@ -2,9 +2,7 @@ const mongoose = require('mongoose');
 
 const validator = require('validator');
 
-const bcrypt = require('bcryptjs');
-
-const AuthorizedError = require('../errors/AuthorizedError');
+// const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
 
@@ -50,17 +48,17 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.statics.findUserByCredentials = function _(email, password) {
-  return this.findOne({ email })
-    .select('+password')
-    .then((user) => {
-      if (!user) return Promise.reject(new AuthorizedError('Incorrect credentials'));
-      return bcrypt.compare(password, user.password)
-        .then((matched) => {
-          if (!matched) return Promise.reject(new AuthorizedError('Incorrect credentials'));
-          return user;
-        });
-    });
-};
+// userSchema.statics.findUserByCredentials = function _(email, password) {
+//   return this.findOne({ email })
+//     .select('+password')
+//     .then((user) => {
+//       if (!user) return Promise.reject(new AuthorizedError('Incorrect credentials'));
+//       return bcrypt.compare(password, user.password)
+//         .then((matched) => {
+//           if (!matched) return Promise.reject(new AuthorizedError('Incorrect credentials'));
+//           return user;
+//         });
+//     });
+// };
 
 module.exports = mongoose.model('user', userSchema);
