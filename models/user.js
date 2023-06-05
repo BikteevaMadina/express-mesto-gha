@@ -54,10 +54,10 @@ userSchema.statics.findUserByCredentials = function _(email, password) {
   return this.findOne({ email })
     .select('+password')
     .then((user) => {
-      if (!user) return Promise.reject(new AuthorizedError('Incorrect credentials'));
+      if (!user) return Promise.reject(new AuthorizedError('Incorrect email or password'));
       return bcrypt.compare(password, user.password)
         .then((matched) => {
-          if (!matched) return Promise.reject(new AuthorizedError('Incorrect credentials'));
+          if (!matched) return Promise.reject(new AuthorizedError('Incorrect email or password'));
           return user;
         });
     });
