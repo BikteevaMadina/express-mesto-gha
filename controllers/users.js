@@ -162,19 +162,19 @@ module.exports.updateAvatar = (request, response, next) => { // обновлен
     });
 };
 
-module.exports.login = (request, response, next) => {
-  const {
-    email,
-    password,
-  } = request.body;
+// module.exports.login = (request, response, next) => {
+//   const {
+//     email,
+//     password,
+//   } = request.body;
 
-  return userSchema
-    .findUserByCredentials(email, password)
-    .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'cat', {
-        expiresIn: '3d',
-      });
-      response.send({ token });
-    })
-    .catch(next);
-};
+//   return userSchema
+//     .findUserByCredentials(email, password)
+//     .then((user) => {
+//       const token = jwt.sign({ _id: user._id }, 'cat', {
+//         expiresIn: '3d',
+//       });
+//       response.send({ token });
+//     })
+//     .catch(next);
+// };
