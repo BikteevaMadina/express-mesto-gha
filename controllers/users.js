@@ -76,6 +76,26 @@ module.exports.createUser = (request, response, next) => { // создаём п�
     .catch(next);
 };
 
+module.exports.getUser = (request, response, next) => {
+  userSchema.findById(request.user._id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User cannot be found');
+      }
+      response.status(200)
+        .send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(BadRequestError('Incorrect data'));
+      } else if (err.message === 'NotFound') {
+        next(new NotFoundError('User cannot be found'));
+      } else {
+        next(err);
+      }
+    });
+};
+
 module.exports.updateUser = (request, response, next) => { // обновление данных пользователя
   const {
     name,
@@ -145,8 +165,7 @@ module.exports.login = (request, response, next) => {
           const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
 
           response.cookie('jwt', token, {
-            httpOnly: false,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true,
           });
 
           return response.send({ message: 'Авторизация прошла успешно' });
