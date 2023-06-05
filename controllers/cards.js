@@ -68,7 +68,7 @@ module.exports.addLike = (request, response, next) => { // добавление 
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new BadRequestError('Incorrect data'));
+        return next(new BadRequestError('Invalid data'));
       }
       return next(err);
     });
@@ -89,7 +89,7 @@ module.exports.deleteLike = (request, response, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new BadRequestError('Incorrect data'));
+        return next(new BadRequestError('Invalid data'));
       }
       return next(err);
     });

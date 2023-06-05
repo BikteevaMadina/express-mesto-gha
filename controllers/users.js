@@ -3,38 +3,12 @@ const bcrypt = require('bcryptjs');
 const userSchema = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
-const AuthorizedError = require('../errors/AuthorizedError');
+
 const ConflictError = require('../errors/ConflictError');
 
 const {
   HTTP_STATUS_OK,
 } = require('../utils/constants');
-
-module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  return userSchema
-    .findOne({ email })
-    .select('+password')
-    .then((user) => {
-      if (!user) {
-        return next(new AuthorizedError('incorrect email or password'));
-      }
-
-      return bcrypt.compare(password, user.password)
-        .then((matched) => {
-          if (!matched) {
-            return next(new AuthorizedError('incorrect email or password'));
-          }
-
-          const token = jwt.sign({ _id: user._id }, 'secret-person-key', { expiresIn: '7d' });
-          res.cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true });
-
-          return res.status(HTTP_STATUS_OK).send({ token });
-        });
-    })
-    .catch(next);
-};
 
 module.exports.getUsers = (request, response, next) => { // получаем всех пользователей
   userSchema.find({})
@@ -92,10 +66,10 @@ module.exports.createUser = (request, response, next) => {
           ))
         .catch((err) => {
           if (err.code === 11000) {
-            return next(new ConflictError('The username with this email has already been registered'));
+            return next(new ConflictError('User with email has registered'));
           }
           if (err.name === 'ValidationError') {
-            return next(new BadRequestError('Incorrect input'));
+            return next(new BadRequestError('Invalid data'));
           }
           return next(err);
         });
@@ -172,19 +146,19 @@ module.exports.updateAvatar = (request, response, next) => { // обновлен
     });
 };
 
-// module.exports.login = (request, response, next) => {
-//   const {
-//     email,
-//     password,
-//   } = request.body;
+module.exports.login = (request, response, next) => {
+  const {
+    email,
+    password,
+  } = request.body;
 
-//   return userSchema
-//     .findUserByCredentials(email, password)
-//     .then((user) => {
-//       const token = jwt.sign({ _id: user._id }, 'cat', {
-//         expiresIn: '3d',
-//       });
-//       response.send({ token });
-//     })
-//     .catch(next);
-// };
+  return userSchema
+    .findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'cat', {
+        expiresIn: '3d',
+      });
+      response.send({ token });
+    })
+    .catch(next);
+};
