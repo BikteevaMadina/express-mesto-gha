@@ -10,6 +10,32 @@ const {
   HTTP_STATUS_OK,
 } = require('../utils/constants');
 
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return userSchema
+    .findOne({ email })
+    .select('+password')
+    .then((user) => {
+      if (!user) {
+        return next(new AuthorizedError('incorrect email or password'));
+      }
+
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return next(new AuthorizedError('incorrect email or password'));
+          }
+
+          const token = jwt.sign({ _id: user._id }, 'secret-person-key', { expiresIn: '7d' });
+          res.cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true });
+
+          return res.status(HTTP_STATUS_OK).send({ token });
+        });
+    })
+    .catch(next);
+};
+
 module.exports.getUsers = (request, response, next) => { // получаем всех пользователей
   userSchema.find({})
     .then((users) => response.send(users))
@@ -72,32 +98,6 @@ module.exports.createUser = (request, response, next) => {
             return next(new BadRequestError('Incorrect input'));
           }
           return next(err);
-        });
-    })
-    .catch(next);
-};
-
-module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  return userSchema
-    .findOne({ email })
-    .select('+password')
-    .then((user) => {
-      if (!user) {
-        return next(new AuthorizedError('incorrect email or password'));
-      }
-
-      return bcrypt.compare(password, user.password)
-        .then((matched) => {
-          if (!matched) {
-            return next(new AuthorizedError('incorrect email or password'));
-          }
-
-          const token = jwt.sign({ _id: user._id }, 'secret-person-key', { expiresIn: '7d' });
-          res.cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true });
-
-          return res.status(200).send({ token });
         });
     })
     .catch(next);
