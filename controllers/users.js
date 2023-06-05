@@ -4,7 +4,7 @@ const userSchema = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
-const AuthorizedError = require('../errors/AuthorizedError');
+
 const {
   HTTP_STATUS_CREATED,
   HTTP_STATUS_OK,
@@ -151,25 +151,13 @@ module.exports.login = (request, response, next) => {
     password,
   } = request.body;
 
-  return userSchema.findOne({ email }).select('+password')
+  return userSchema
+    .findUserByCredentials(email, password)
     .then((user) => {
-      if (!user) {
-        return next(new AuthorizedError('Неправильные почта или пароль'));
-      }
-
-      return bcrypt.compare(password, user.password)
-        .then((matched) => {
-          if (!matched) {
-            return next(new AuthorizedError('Неправильные почта или пароль'));
-          }
-          const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
-
-          response.cookie('jwt', token, {
-            maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true,
-          });
-
-          return response.send({ message: 'Авторизация прошла успешно' });
-        });
+      const token = jwt.sign({ _id: user._id }, 'cat', {
+        expiresIn: '3d',
+      });
+      response.send({ token });
     })
-    .catch((err) => next(err));
+    .catch(next);
 };
