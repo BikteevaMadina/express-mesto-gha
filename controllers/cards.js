@@ -36,7 +36,7 @@ module.exports.deleteCard = (request, response, next) => {
 
   cardSchema
     .findById(cardId)
-    .orFail(new BadRequestError(`Card Id: ${cardId} is not found`))
+    .orFail(new NotFoundError(`Card Id: ${cardId} is not found`))
     .then((card) => {
       if (card.owner.toString() !== request.user._id) {
         return next(new ForbiddenError("You can't delete card"));
