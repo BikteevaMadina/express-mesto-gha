@@ -15,19 +15,37 @@ module.exports.getCards = (request, response, next) => { // получение �
     .catch(next);
 };
 
-module.exports.deleteCard = (request, response, next) => { // удаление поста по id
+// module.exports.deleteCard = (request, response, next) => { // удаление поста по id
+//   const { cardId } = request.params;
+
+//   cardSchema.findByIdAndRemove(cardId)
+//     .then((card) => {
+//       if (!card) {
+//         throw new NotFoundError('User cannot be found');
+//       }
+//       if (!card.owner.equals(request.user._id)) {
+//         return next(new ForbiddenError('Card cannot be deleted'));
+//       }
+//       return card.deleteOne().then(() => response.send({ message: 'Card was deleted' }));
+//     })
+//     .catch(next);
+// };
+
+module.exports.deleteCard = (request, response, next) => {
   const { cardId } = request.params;
 
-  cardSchema.findByIdAndRemove(cardId)
+  cardSchema
+    .findById(cardId)
+    .orFail(new BadRequestError(`Card Id: ${cardId} is not found`))
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('User cannot be found');
+      if (card.owner.toString() !== request.user._id) {
+        return next(new ForbiddenError("You can't delete card"));
       }
-      if (!card.owner.equals(request.user._id)) {
-        return next(new ForbiddenError('Card cannot be deleted'));
-      }
-      return card.deleteOne().then(() => response.send({ message: 'Card was deleted' }));
+
+      return card;
     })
+    .then((card) => cardSchema.deleteOne(card))
+    .then(() => request.status(HTTP_STATUS_OK).send({ message: 'Card was deleted' }))
     .catch(next);
 };
 
