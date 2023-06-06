@@ -15,45 +15,20 @@ module.exports.getCards = (request, response, next) => { // получение �
     .catch(next);
 };
 
-// module.exports.deleteCard = (request, response, next) => { // удаление поста по id
-//   const { cardId } = request.params;
-
-//   cardSchema.findByIdAndRemove(cardId)
-//     .then((card) => {
-//       if (!card) {
-//         throw new NotFoundError('User cannot be found');
-//       }
-//       if (!card.owner.equals(request.user._id)) {
-//         return next(new ForbiddenError('Card cannot be deleted'));
-//       }
-//       return card.deleteOne().then(() => response.send({ message: 'Card was deleted' }));
-//     })
-//     .catch(next);
-// };
-
-module.exports.deleteCard = (request, response, next) => {
+module.exports.deleteCard = (request, response, next) => { // удаление поста по id
   const { cardId } = request.params;
 
-  cardSchema
-    .findById(cardId)
-    .orFail()
+  cardSchema.findById(cardId)
     .then((card) => {
-      if (String(card.owner) !== String(request.user._id)) {
-        throw new ForbiddenError('Недостаточно прав для удаления');
+      if (!card) {
+        throw new NotFoundError('User cannot be found');
       }
-      return card.deleteOne();
+      if (!card.owner.equals(request.user._id)) {
+        return next(new ForbiddenError('Card cannot be deleted'));
+      }
+      return card.deleteOne().then(() => response.send({ message: 'Card was deleted' }));
     })
-    .then((card) => request.status(HTTP_STATUS_OK).send(card))
-    .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        return next(new NotFoundError('ard with id not found'));
-      }
-      if (err.name === 'CastError') {
-        return next(new BadRequestError('Incorrect data'));
-      }
-
-      return next(err);
-    });
+    .catch(next);
 };
 
 module.exports.createCard = (request, response, next) => { // создание поста
