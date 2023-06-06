@@ -87,10 +87,10 @@ module.exports.getUser = (request, response, next) => {
         .send(user);
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
+      if (err.name === 'ValidationError') {
         next(BadRequestError('Incorrect data'));
-      } else if (err.message === 'NotFound') {
-        next(new NotFoundError('User cannot be found'));
+      // } else if (err.message === 'NotFound') {
+      //   next(new NotFoundError('User cannot be found'));
       } else {
         next(err);
       }
