@@ -13,7 +13,7 @@ const {
 
 const auth = require('./middlewares/auth');
 
-const { createUser, login } = require('./controllers/users');
+const { createUser, login } = require('./controllers/authorization');
 
 const {
   MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb',
