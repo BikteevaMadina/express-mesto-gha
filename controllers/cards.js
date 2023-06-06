@@ -36,17 +36,24 @@ module.exports.deleteCard = (request, response, next) => {
 
   cardSchema
     .findById(cardId)
-    .orFail(new NotFoundError(`Card Id: ${cardId} is not found`))
+    .orFail()
     .then((card) => {
-      if (card.owner.toString() !== request.user._id) {
-        return next(new ForbiddenError("You can't delete card"));
+      if (String(card.owner) !== String(request.user._id)) {
+        throw new ForbiddenError('Недостаточно прав для удаления');
+      }
+      return card.deleteOne();
+    })
+    .then((card) => request.status(200).send(card))
+    .catch((err) => {
+      if (err.name === 'DocumentNotFoundError') {
+        return next(new NotFoundError('ard with id not found'));
+      }
+      if (err.name === 'CastError') {
+        return next(new BadRequestError('Incorrect data'));
       }
 
-      return card;
-    })
-    .then((card) => cardSchema.deleteOne(card))
-    .then(() => request.status(200).send({ message: 'Card was deleted' }))
-    .catch(next);
+      return next(err);
+    });
 };
 
 module.exports.createCard = (request, response, next) => { // создание поста
