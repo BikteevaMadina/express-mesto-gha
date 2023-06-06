@@ -45,7 +45,7 @@ module.exports.deleteCard = (request, response, next) => {
       return card;
     })
     .then((card) => cardSchema.deleteOne(card))
-    .then(() => request.status(HTTP_STATUS_OK).send({ message: 'Card was deleted' }))
+    .then(() => request.status(200).send({ message: 'Card was deleted' }))
     .catch(next);
 };
 
