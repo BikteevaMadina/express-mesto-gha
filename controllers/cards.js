@@ -43,7 +43,7 @@ module.exports.deleteCard = (request, response, next) => {
       }
       return card.deleteOne();
     })
-    .then((card) => request.status(200).send(card))
+    .then((card) => request.status(HTTP_STATUS_OK).send(card))
     .catch((err) => {
       if (err.name === 'DocumentNotFoundError') {
         return next(new NotFoundError('ard with id not found'));
